@@ -1,0 +1,10 @@
+#ifndef OCT_CONFIG_H_INCLUDED
+#define OCT_CONFIG_H_INCLUDED
+#define NULL_PTR 0xFFFFFFFF
+#define LEAF_FLAG 0x80000000
+#define INDEX_MASK 0x7FFFFFFF
+
+// 稠密叶节点块的配置
+#define LEAF_DIM 8  // 8x8x8 的稠密块
+#define LEAF_GRID_SIZE (LEAF_DIM * LEAF_DIM * LEAF_DIM) // 512
+#endif
