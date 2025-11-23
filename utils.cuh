@@ -7,6 +7,10 @@
 #include <cuda_runtime.h> // 确保你包含了 CUDA 头文件，float3 在这里定义
 #include <cub/cub.cuh>
 
+#include <torch/extension.h>
+
+// 检查是否在 GPU 上
+#define CHECK_CUDA(x) TORCH_CHECK(x.device().is_cuda(), #x " must be a CUDA tensor")
 
 typedef cub::KeyValuePair<float, int> FloatIntPair;
 __device__ __forceinline__ bool operator>(const FloatIntPair& a, const FloatIntPair& b)

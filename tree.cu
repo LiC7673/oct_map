@@ -385,6 +385,7 @@ __global__ void init_root_kernel(
     uint32_t* d_allocators,
     float4 scene_center_and_half_size
 ) {
+//     printf("init_root_kernel");
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // 1. 初始化根节点 (index=0)
         new (&d_node_pool[0]) InternalNode();
@@ -393,6 +394,7 @@ __global__ void init_root_kernel(
         // 2. 初始化分配器
         d_allocators[0] = 1; // 节点分配器 (index 0 已被根节点占用)
         d_allocators[1] = 0; // 叶子分配器 (从 0 开始)
+//         printf("finish_init");
     }
 }
 void launch_update_octree(
@@ -414,7 +416,7 @@ void launch_update_octree(
     float         free_weight
 ) {
     TORCH_CHECK(depth_map.is_cuda(), "Depth map must be on CUDA");
-
+    printf("update_start");
 
     int img_height = depth_map.size(0);
     int img_width = depth_map.size(1);
@@ -426,10 +428,14 @@ void launch_update_octree(
     );
 
     float4 intrinsics;
-    auto i_acc = intrinsics_t.accessor<float, 1>();
+    auto cpu_i =intrinsics_t.to(torch::kCPU).to(torch::kFloat32).contiguous();
+
+    // 2. 对 CPU 上的副本创建访问器
+//     auto bbox_acc = cpu_bbox.accessor<float, 2>();
+    auto i_acc = cpu_i.accessor<float, 1>();
     intrinsics.x = i_acc[0]; intrinsics.y = i_acc[1];
     intrinsics.z = i_acc[2]; intrinsics.w = i_acc[3];
-
+    printf("update_start");
     update_octree_kernel<<<numBlocks, threadsPerBlock>>>(
         depth_map.data_ptr<float>(),
         intrinsics,
@@ -454,14 +460,22 @@ void launch_init_root(
     torch::Tensor d_allocators,//()用于标记池子
     torch::Tensor scene_bbox // (2, 3) [min, max]
 ) {
+//     printf("init_start");
+    CHECK_CUDA(d_node_pool);
+    CHECK_CUDA(d_allocators);
+    CHECK_CUDA(scene_bbox);
+    auto cpu_bbox = scene_bbox.to(torch::kCPU).to(torch::kFloat32).contiguous();
+
+    // 2. 对 CPU 上的副本创建访问器
+    auto bbox_acc = cpu_bbox.accessor<float, 2>();
     float4 c_hs;
-    auto bbox_acc = scene_bbox.accessor<float, 2>();
+//     auto bbox_acc = scene_bbox.accessor<float, 2>();
     c_hs.x = (bbox_acc[0][0] + bbox_acc[1][0]) * 0.5f; // center x
     c_hs.y = (bbox_acc[0][1] + bbox_acc[1][1]) * 0.5f; // center y
     c_hs.z = (bbox_acc[0][2] + bbox_acc[1][2]) * 0.5f; // center z
     c_hs.w = (bbox_acc[1][0] - bbox_acc[0][0]) * 0.5f; // half_size
-    // (假设场景是立方体)
 
+//     printf("local_init");
     init_root_kernel<<<1, 1>>>(
         (InternalNode*)d_node_pool.data_ptr(),
         (uint32_t*)d_allocators.data_ptr(),

@@ -8,14 +8,16 @@ if os.name == 'nt':
     cxx_compiler_flags.append("/wd4624")
 setup(
     name='oct_map',  # 你在 Python 中 import 时用的名字
+    packages=['oct_map'],
     ext_modules=[
+
         CUDAExtension(
             # 模块的C扩展名，必须和 setup.py 里的 'name' 匹配
-            name="oct_map",
+            name="oct_map._C",
 
             # 1. 你的所有 *源文件* (.cpp, .cu)
             # .h 头文件不需要列在这里，编译器会自动找到它们
-            sources=['tree.cu',"ext.cpp","utils.cu"],
+            sources=['tree.cu',"ext.cpp"],
 
             # 2. (可选) 额外的编译参数
             # extra_compile_args={'cxx': ['-O3'],
